@@ -1,51 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import StudentFrontPage from "./pages/StudentFrontPage";
+import TeacherFrontPage from "./pages/TeacherFrontPage";
+import StudentCoursesView from "./pages/StudentCoursesView";
+import TeacherClasses from "./pages/TeacherClasses";
+import StudentNavbar from "./components/StudentNavbar";
+import TeacherNavbar from "./components/TeacherNavbar";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <ds-button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </ds-button>
-        <div>
-          <ds-radio-button-group ds-label="Mitä ihmettä" ds-assistive-text="" ds-direction="vertical" ds-value="" ds-error-text="">
-            <ds-radio-button ds-text="Value text 1"></ds-radio-button>
-            <ds-radio-button ds-text="Value text 2"></ds-radio-button>
-            <ds-radio-button ds-text="Value text 3"></ds-radio-button>
-            <ds-radio-button ds-text="Value text 4"></ds-radio-button>
-         </ds-radio-button-group>
-          </div>
-          <div>
-            <ds-spinner></ds-spinner>
-          </div>
-          <div>
-                <ds-select ds-label="Valitse jtn." ds-placeholder="Select an option" ds-variant="default" ds-clearable="" ds-error-text="" ds-icon="language" ds-value="">
-                <ds-option ds-value="option1">Option 1</ds-option><ds-option ds-value="option2">Option 2</ds-option><ds-option ds-value="option3">Option 3</ds-option>
-                </ds-select>
-          </div>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+// Protected route component
+function ProtectedRoute({ children, role }) {
+  const currentRole = localStorage.getItem("role");
+  if (currentRole !== role) return <Navigate to="/" replace />;
+  return children;
 }
 
-export default App
+export default function App() {
+  const [role, setRole] = useState(localStorage.getItem("role"));
+
+  return (
+    <Router>
+      {/* Show the navbar if logged in */}
+      {role === "student" && <StudentNavbar onLogout={() => setRole(null)} />}
+      {role === "teacher" && <TeacherNavbar onLogout={() => setRole(null)} />}
+
+      <div style={{ paddingTop: "70px" }}> {/* prevent content overlapping navbar */}
+        <Routes>
+          <Route path="/" element={<Login onLogin={setRole} />} />
+          
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute role="student">
+                <StudentFrontPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/courses"
+            element={
+              <ProtectedRoute role="student">
+                <StudentCoursesView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher"
+            element={
+              <ProtectedRoute role="teacher">
+                <TeacherFrontPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/classes"
+            element={
+              <ProtectedRoute role="teacher">
+                <TeacherClasses />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+
+
+
+
