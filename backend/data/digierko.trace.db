@@ -1,0 +1,8 @@
+2025-11-21 01:20:19.387053+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]SQL\000d\000aSELECT * FROM SUORITEKORTTI"; expected "SAVEPOINT, SCRIPT, SHUTDOWN"; SQL statement:
+SQL
+SELECT * FROM SUORITEKORTTI [42001-232]
+2025-11-21 01:22:01.714338+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]SQL\000d\000aSELECT * FROM SUORITEKORTTI"; expected "SAVEPOINT, SCRIPT, SHUTDOWN"; SQL statement:
+SQL
+SELECT * FROM SUORITEKORTTI [42001-232]
