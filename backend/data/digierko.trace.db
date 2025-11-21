@@ -6,3 +6,13 @@ SELECT * FROM SUORITEKORTTI [42001-232]
 org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]SQL\000d\000aSELECT * FROM SUORITEKORTTI"; expected "SAVEPOINT, SCRIPT, SHUTDOWN"; SQL statement:
 SQL
 SELECT * FROM SUORITEKORTTI [42001-232]
+2025-11-21 03:25:52.456704+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]SQL\000d\000aSELECT * FROM KAYTTAJA"; expected "SAVEPOINT, SCRIPT, SHUTDOWN"; SQL statement:
+SQL
+SELECT * FROM KAYTTAJA [42001-232]
+2025-11-21 03:39:54.927652+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT * [*]KAYTTAJA"; SQL statement:
+SELECT * KAYTTAJA [42000-232]
+2025-11-21 03:39:58.828078+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT * [*]KAYTTAJA"; SQL statement:
+SELECT * KAYTTAJA [42000-232]

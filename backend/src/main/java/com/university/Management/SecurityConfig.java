@@ -1,7 +1,9 @@
-package com.university.Management;
+package com.university.Management; 
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered; 
+import org.springframework.core.annotation.Order; 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -10,29 +12,20 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // KÄYTETÄÄN TÄHÄN VIIMEISEEN TESTIIN VARTEN TÄYSIN PERMISSIIVISTÄ KOODIA:
+    
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE) // Pakottaa tämän konfiguraation menemään ensin
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Poista CSRF-suojaus käytöstä H2-konsolia varten kehityksessä
-            .csrf(csrf -> csrf.disable())
-
-            // Salli H2-konsolin kehystys (tarvitaan, jotta se näkyy selaimessa)
-            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
-
-            // Määritä, mitkä polut ovat sallittuja ilman todennusta
-            .authorizeHttpRequests(authorize -> authorize
-                // Sallii pääsyn H2-konsolin polkuun ja sen alipolkuihin
-                .requestMatchers("/h2-console/**").permitAll() 
-                // Salli pääsy myös juuripolkuun (riippuen API-kutsun luonteesta)
-                .requestMatchers("/").permitAll() 
-                
-                // KAIKKI MUUT pyynnöt vaativat todentamisen (automaattinen ohjaus /login-sivulle)
-                .anyRequest().authenticated()
-            )
+            .csrf(csrf -> csrf.disable()) // Poistaa CSRF-suojauksen (POST-pyynnöt)
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) // Sallii H2-konsolin
             
-            // Oletusmuotoinen kirjautumiskäytäntö (koska meillä ei ole omaa)
-            .formLogin(formLogin -> formLogin.permitAll());
-
+            .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll() // SALLII PÄÄSYN AIVAN KAIKKEEN ILMAN TODENNUKSIA
+            )
+            ; 
+            
         return http.build();
     }
 }

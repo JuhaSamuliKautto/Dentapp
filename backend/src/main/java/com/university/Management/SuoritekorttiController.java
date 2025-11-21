@@ -1,4 +1,4 @@
-package com.university.Management.controller;
+package com.university.Management;
 
 import com.university.Management.model.Kayttaja;
 import com.university.Management.model.Suoritekortti;

@@ -1,22 +1,32 @@
 package com.university.Management.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
-@Data
-@NoArgsConstructor
 public class Lokikirja {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String nimi; // Kurssin/vihkon nimi
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kayttaja_id")
+    private Kayttaja kayttaja; 
+
+    @Lob 
+    private String sisalto; 
     
-    // Viite oppilaaseen, jolle tämä lokikirja kuuluu
-    @ManyToOne
-    @JoinColumn(name = "oppilas_id", nullable = false)
-    private Kayttaja oppilas; 
+    private LocalDateTime luontiAika = LocalDateTime.now();
+
+    // --- GETTERIT JA SETTERIT ---
+    
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Kayttaja getKayttaja() { return kayttaja; }
+    public void setKayttaja(Kayttaja kayttaja) { this.kayttaja = kayttaja; }
+    public String getSisalto() { return sisalto; }
+    public void setSisalto(String sisalto) { this.sisalto = sisalto; }
+    public LocalDateTime getLuontiAika() { return luontiAika; }
+    public void setLuontiAika(LocalDateTime luontiAika) { this.luontiAika = luontiAika; }
 }

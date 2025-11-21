@@ -1,5 +1,4 @@
-// AuthController.java - TÄMÄN PITÄISI OLLA AINOA SISÄLTÖ
-package com.university.Management.controller;
+package com.university.Management;
 
 import com.university.Management.model.Kayttaja;
 import com.university.Management.model.Rooli;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-// Sallii pyynnöt Front-Endistä (esim. React)
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/auth") 
@@ -20,35 +18,56 @@ public class AuthController {
     @Autowired
     private KayttajaRepository kayttajaRepository;
 
-    // Data Transfer Object kirjautumista varten
+    // --- LOGAUS (VANHA) ---
     public static class LoginRequest {
         public String kayttajatunnus;
         public String salasana;
     }
 
-    // Rajapinta kirjautumista varten: POST /api/auth/login
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        
-        // 1. Etsi käyttäjä tietokannasta käyttäjätunnuksen perusteella
         Optional<Kayttaja> kayttajaOpt = kayttajaRepository.findByKayttajatunnus(loginRequest.kayttajatunnus);
-
         if (kayttajaOpt.isEmpty()) {
             return new ResponseEntity<>("Käyttäjää ei löydy.", HttpStatus.UNAUTHORIZED);
         }
-
         Kayttaja kayttaja = kayttajaOpt.get();
-
-        // 2. TARKISTA SALASANA (TÄMÄ ON YKSINKERTAISTETTU, oikeasti hashattu!)
         if (!kayttaja.getSalasanaHash().equals(loginRequest.salasana)) {
             return new ResponseEntity<>("Virheellinen salasana.", HttpStatus.UNAUTHORIZED);
         }
-
-        // 3. Kirjautuminen onnistui, palauta rooli ja ID
         return ResponseEntity.ok(new AuthResponse(kayttaja.getId(), kayttaja.getRooli()));
     }
-    
-    // Vastausobjekti (palautetaan Reactille)
+
+    // --- UUSI OSA: REKISTERÖINTI --- 
+
+    // Pyyntö-olio rekisteröintiä varten (tarvitsee myös roolin)
+    public static class RegisterRequest {
+        public String kayttajatunnus;
+        public String salasana;
+        public Rooli rooli; // Odottaa arvoa "OPETTAJA" tai "OPPILAS"
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        // 1. Tarkista onko tunnus jo olemassa
+        if (kayttajaRepository.findByKayttajatunnus(request.kayttajatunnus).isPresent()) {
+            return new ResponseEntity<>("Käyttäjätunnus on jo varattu!", HttpStatus.BAD_REQUEST);
+        }
+
+        // 2. Luo uusi käyttäjä
+        Kayttaja uusiKayttaja = new Kayttaja();
+        uusiKayttaja.setKayttajatunnus(request.kayttajatunnus);
+        // HUOM: Oikeassa sovelluksessa tässä kohtaa salasana kryptattaisiin (esim. BCrypt)
+        // Nyt tallennamme sen selkokielisenä, jotta nykyinen login-logiikkasi toimii.
+        uusiKayttaja.setSalasanaHash(request.salasana); 
+        uusiKayttaja.setRooli(request.rooli);
+
+        // 3. Tallenna kantaan
+        kayttajaRepository.save(uusiKayttaja);
+
+        return ResponseEntity.ok("Käyttäjä luotu onnistuneesti!");
+    }
+
+    // --- VASTAUS ---
     public static class AuthResponse {
         public Long userId;
         public Rooli rooli;
