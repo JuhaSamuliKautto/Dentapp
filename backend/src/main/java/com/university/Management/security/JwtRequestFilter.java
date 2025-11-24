@@ -1,71 +1,68 @@
 package com.university.Management.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.SignatureException;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtTokenService jwtTokenService;
+    private final UserDetailsService jwtTokenService; 
+    private final JwtUtil jwtUtil; 
 
-    private final String HEADER_STRING = "Authorization";
-    private final String TOKEN_PREFIX = "Bearer ";
+    // Lisää tämä konstruktori, joka hoitaa injektoinnin
+    public JwtRequestFilter(UserDetailsService jwtTokenService, JwtUtil jwtUtil) {
+        this.jwtTokenService = jwtTokenService;
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        
-        String header = request.getHeader(HEADER_STRING);
-        // Poistettu: String username = null;
-        // Poistettu: String authToken = null;
 
-        if (header != null && header.startsWith(TOKEN_PREFIX)) {
-            String authToken = header.replace(TOKEN_PREFIX, "");
-            
+        final String requestTokenHeader = request.getHeader("Authorization");
+
+        String username = null;
+        String jwtToken = null;
+
+        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+            jwtToken = requestTokenHeader.substring(7);
             try {
-                Jws<Claims> claimsJws = Jwts.parserBuilder()
-                        .setSigningKey(jwtTokenService.getSigningKey())
-                        .build()
-                        .parseClaimsJws(authToken);
+                // KORJATTU: Käytetään nyt jwtUtil-oliota
+                username = jwtUtil.getUsernameFromToken(jwtToken);
+            } catch (IllegalArgumentException e) {
+                logger.error("JWT Tokenin luku epäonnistui", e);
+            } catch (ExpiredJwtException e) {
+                logger.error("JWT Token on vanhentunut", e);
+            }
+        } else {
+            logger.warn("JWT Token ei ala Bearer-etuliitteellä, tai Authorization-otsake puuttuu");
+        }
 
-                String username = claimsJws.getBody().getSubject();
-                String role = (String) claimsJws.getBody().get("role");
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            UserDetails userDetails = this.jwtTokenService.loadUserByUsername(username);
+
+            // KORJATTU: Käytetään nyt jwtUtil-oliota
+            if (jwtUtil.validateToken(jwtToken, userDetails)) {
+
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                usernamePasswordAuthenticationToken
+                        .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
-                // Määritellään roolit (Authorities) Spring Securitylle
-                // TÄRKEÄÄ: Lisätään "ROLE_" etuliite, jota Spring Security odottaa!
-                List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role)); 
-                
-                // TÄRKEÄ KORJAUS/LISÄYS: Varmistetaan, että käyttäjätunnus löytyi tokenista
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = new User(username, "", authorities);
-                    
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, authorities);
-                    
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            } catch (SignatureException e) {
-                logger.warn("Invalid JWT Signature (403 expected for invalid token)", e);
-            } catch (Exception e) {
-                logger.warn("JWT processing failed: " + e.getMessage(), e);
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             }
         }
         

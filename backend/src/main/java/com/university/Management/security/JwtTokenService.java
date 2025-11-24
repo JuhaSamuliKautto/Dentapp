@@ -1,45 +1,37 @@
-package com.university.Management.security;
+package com.university.Management.security; 
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import com.university.Management.model.Kayttaja; 
+import com.university.Management.repository.KayttajaRepository; 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Set;
 
 @Service
-public class JwtTokenService {
+public class JwtTokenService implements UserDetailsService {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    @Autowired
+    private KayttajaRepository kayttajaRepository;
 
-    @Value("${jwt.expiration}")
-    private long expiration; 
+    @Override
+    public UserDetails loadUserByUsername(String kayttajatunnus) throws UsernameNotFoundException {
+        
+        Kayttaja kayttaja = kayttajaRepository.findByKayttajatunnus(kayttajatunnus)
+            .orElseThrow(() -> new UsernameNotFoundException("Käyttäjää " + kayttajatunnus + " ei löytynyt"));
+        
+        Set<SimpleGrantedAuthority> authorities = Collections.singleton(
+            new SimpleGrantedAuthority("ROLE_" + kayttaja.getRooli().name())
+        );
 
-    private Key key;
-
-    public Key getSigningKey() {
-        if (key == null) {
-            key = Keys.hmacShaKeyFor(secret.getBytes());
-        }
-        return key;
-    }
-
-    public String generateToken(Long userId, String username, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("role", role);
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+        return new org.springframework.security.core.userdetails.User(
+                kayttaja.getKayttajatunnus(),
+                kayttaja.getSalasana(), 
+                authorities
+        );
     }
 }

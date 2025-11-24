@@ -1,74 +1,78 @@
 package com.university.Management.security;
 
-import org.springframework.beans.factory.annotation.Autowired; 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration; // TÄMÄ ON UUSI IMPORTTI
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; 
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; 
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@EnableMethodSecurity // OTTAA KÄYTTÖÖN @PreAuthorize
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer; 
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity 
 public class SecurityConfig {
 
-    @Autowired
-    private JwtRequestFilter jwtRequestFilter; 
-
-    // --- BEAN MÄÄRITYKSET ---
-
-    /**
-     * Määrittelee salasanan tiivistämismekanismin (BCrypt)
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * PAKOLLINEN: AuthenticationManager-bean tarvitaan, jotta Spring Security voi 
-     * prosessoida JWTRequestFilterin asettaman autentikaatiokontekstin.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
-
-    // --- SUODATINKETJU ---
-
-    /**
-     * Asettaa tietoturvasäännöt: tilaton sessio ja JWT-suodatin
-     */
+    
+    // CORS-konfiguraatio
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**") 
+                        .allowedOrigins("*") 
+                        .allowedMethods("*") 
+                        .allowedHeaders("*");
+            }
+        };
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+        HttpSecurity http,
+        JwtRequestFilter jwtRequestFilter // Jätetään tämä parametreihin - Autowiringin pitäisi toimia puhtaalla ympäristöllä
+    ) throws Exception {
         http
-            // Poistaa CSRF-suojauksen
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf.disable())
             
-            // Asettaa istunnonhallinnan tilattomaksi (STATELESS)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Määritellään pääsyrajat
-            .authorizeHttpRequests(auth -> auth
-                // Salli rekisteröinti, kirjautuminen ja H2-konsoli ilman autentikointia
-                .requestMatchers("/api/auth/**", "/h2-console/**").permitAll()
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll() 
+                .requestMatchers(HttpMethod.OPTIONS, "/api/auth/login").permitAll() 
+                .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll() 
+                .requestMatchers(HttpMethod.OPTIONS, "/api/auth/register").permitAll()
                 
-                // Kaikki muut pyynnöt vaativat autentikoinnin (JWT-tokenin)
+                .requestMatchers("/h2-console/**").permitAll() 
+                
                 .anyRequest().authenticated()
             )
-            // LISÄTTY: Lisätään oma JWT-suodatin ennen Springin sisäänrakennettua suodatinta
-            .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
             
-        // Tarvitaan, jotta H2-konsoli toimii
-        http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
+            
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            
+            // Käytetään Autowired filtteriä
+            .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
