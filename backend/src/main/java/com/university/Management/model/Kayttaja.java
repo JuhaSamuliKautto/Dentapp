@@ -1,9 +1,11 @@
 package com.university.Management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties; // UUSI RIVI
 import jakarta.persistence.*;
 import lombok.Data; 
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // UUSI RIVI
 @Data 
 public class Kayttaja {
     @Id

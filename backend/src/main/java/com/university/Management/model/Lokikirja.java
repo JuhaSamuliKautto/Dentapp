@@ -1,9 +1,11 @@
 package com.university.Management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties; // UUSI RIVI
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // UUSI RIVI
 public class Lokikirja {
 
     @Id

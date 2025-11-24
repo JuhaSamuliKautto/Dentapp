@@ -1,38 +1,44 @@
 package com.university.Management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Data; // TARVITAAN settereiden luomiseen
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
+
+import java.time.LocalDateTime; // TARVITAAN KuittausAika-kentälle
 
 @Entity
-@Data
+@Data // TÄMÄ LUO PUUTTUVAT SETTERIT (setLokikirja, setKortti, setTila jne.)
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Suoritus {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // KORJATTU: Käyttää nyt SuoritusTila-Enumia
-    @Enumerated(EnumType.STRING) // TÄMÄ TALLENTAA ENUMIN TEKSTINÄ TIETOKANTAAN
-    private SuoritusTila tila = SuoritusTila.KESKEN; // HUOM: Vaatii KESKEN-tilan Enumissa
-
-    // Mikä kortti on suoritettu
-    @ManyToOne
-    @JoinColumn(name = "kortti_id", nullable = false)
-    private Suoritekortti kortti; 
-
-    // Missä Lokikirjassa suoritus tapahtuu
-    @ManyToOne
-    @JoinColumn(name = "lokikirja_id", nullable = false)
-    private Lokikirja lokikirja; 
-
-    // Viite opettajaan, joka on tehnyt kuittauksen (voi olla null ennen kuittausta)
-    @ManyToOne
-    @JoinColumn(name = "arvioija_id")
-    private Kayttaja arvioija; 
-
-    private LocalDateTime kuittausAika;
+    // --- RIIPPUVUUDET (Korjaavat setLokikirja/setSuoritekortti virheet) ---
     
-    // Lombokin @Data luo setTila(SuoritusTila tila) ja getTila() -metodit automaattisesti
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lokikirja_id")
+    private Lokikirja lokikirja;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kortti_id")
+    private Suoritekortti suoritekortti; // HUOM: Kentän nimi on suoritekortti, EI kortti
+
+    // --- UUDET KENTÄT (Korjaavat setTila/setArvioija/setKuittausAika virheet) ---
+
+    // setTila (SuoritusTila on enum, joka sinun on luotava)
+    @Enumerated(EnumType.STRING)
+    private SuoritusTila tila = SuoritusTila.ALOITETTU;
+
+    // setKuittausAika (LocalDateTime)
+    private LocalDateTime kuittausAika;
+
+    // setArvioija (Kayttaja)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arvioija_id")
+    private Kayttaja arvioija; // TÄMÄ LUO setArvioija-metodin
+
 }

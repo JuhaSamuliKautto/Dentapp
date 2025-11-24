@@ -1,4 +1,4 @@
-package com.university.Management;
+package com.university.Management.controller;
 
 import com.university.Management.model.Kayttaja;
 import com.university.Management.model.Lokikirja;
