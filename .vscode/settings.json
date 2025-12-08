@@ -1,0 +1,18 @@
+{
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "maven.terminal.favorites": [
+        {
+            "command": "clean",
+            "debug": false
+        },
+        {
+            "command": "Install",
+            "debug": false
+        },
+        {
+            "command": "install",
+            "debug": false
+        }
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
+}
